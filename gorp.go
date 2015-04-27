@@ -994,7 +994,7 @@ func (m *DbMap) Insert(list ...interface{}) error {
 		return err
 	}
 
-	err = postCommitInsert(m, list)
+	err = postCommitInsert(m, list...)
 	if err != nil {
 		return err
 	}
@@ -1018,7 +1018,7 @@ func (m *DbMap) Update(list ...interface{}) (int64, error) {
 		return -1, err
 	}
 
-	err = postCommitUpdate(m, list)
+	err = postCommitUpdate(m, list...)
 	if err != nil {
 		return -1, err
 	}
@@ -1042,7 +1042,7 @@ func (m *DbMap) Delete(list ...interface{}) (int64, error) {
 		return -1, err
 	}
 
-	err = postCommitDelete(m, list)
+	err = postCommitDelete(m, list...)
 	if err != nil {
 		return -1, err
 	}
@@ -1263,7 +1263,7 @@ func (t *Transaction) Insert(list ...interface{}) error {
 	}
 
 	t.postCommitCallbacks = append(t.postCommitCallbacks, func() {
-		postCommitInsert(t.dbmap, list)
+		postCommitInsert(t.dbmap, list...)
 	})
 
 	return nil
@@ -1277,7 +1277,7 @@ func (t *Transaction) Update(list ...interface{}) (int64, error) {
 	}
 
 	t.postCommitCallbacks = append(t.postCommitCallbacks, func() {
-		postCommitUpdate(t.dbmap, list)
+		postCommitUpdate(t.dbmap, list...)
 	})
 
 	return i, nil
@@ -1291,7 +1291,7 @@ func (t *Transaction) Delete(list ...interface{}) (int64, error) {
 	}
 
 	t.postCommitCallbacks = append(t.postCommitCallbacks, func() {
-		postCommitDelete(t.dbmap, list)
+		postCommitDelete(t.dbmap, list...)
 	})
 
 	return i, nil
@@ -1367,6 +1367,7 @@ func (t *Transaction) Commit() error {
 		for _, cb := range t.postCommitCallbacks {
 			cb()
 		}
+		return nil
 	}
 
 	return sql.ErrTxDone
