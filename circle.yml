@@ -1,0 +1,27 @@
+machine:
+  services:
+    - mysql
+    - postgresql
+
+checkout:
+  post:
+    - rm -rf ~/.go_workspace/src/github.com/evenco
+    - mkdir -p ~/.go_workspace/src/github.com/evenco
+    - cp -R ~/gorp ~/.go_workspace/src/github.com/evenco/gorp
+    - cd ~/.go_workspace/src/github.com/evenco/gorp
+
+dependencies:
+  override:
+    - go get -t -v github.com/evenco/gorp/...
+    - go get github.com/lib/pq
+    - go get github.com/mattn/go-sqlite3
+    - go get github.com/ziutek/mymysql/godrv
+    - go get github.com/go-sql-driver/mysql
+
+test:
+  override:
+    - mysql -e "CREATE DATABASE gorptest;"
+    - mysql -u root -e "GRANT ALL ON gorptest.* TO gorptest@localhost IDENTIFIED BY 'gorptest'"
+    - psql -c "CREATE DATABASE gorptest;" -U postgres
+    - psql -c "CREATE USER "gorptest" WITH SUPERUSER PASSWORD 'gorptest';" -U postgres
+    - ./test_all.sh

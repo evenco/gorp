@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+
+	"golang.org/x/net/context"
 )
 
 // The Dialect interface encapsulates behaviors that differ across
@@ -66,7 +68,7 @@ type Dialect interface {
 // the dialect can handle automatic assignment of more than just
 // integers, see TargetedAutoIncrInserter.
 type IntegerAutoIncrInserter interface {
-	InsertAutoIncr(exec SqlExecutor, insertSql string, params ...interface{}) (int64, error)
+	InsertAutoIncr(ctx context.Context, exec SqlExecutor, insertSql string, params ...interface{}) (int64, error)
 }
 
 // TargetedAutoIncrInserter is implemented by dialects that can
@@ -77,11 +79,11 @@ type TargetedAutoIncrInserter interface {
 	// automatically generated primary key directly to the passed in
 	// target.  The target should be a pointer to the primary key
 	// field of the value being inserted.
-	InsertAutoIncrToTarget(exec SqlExecutor, insertSql string, target interface{}, params ...interface{}) error
+	InsertAutoIncrToTarget(ctx context.Context, exec SqlExecutor, insertSql string, target interface{}, params ...interface{}) error
 }
 
-func standardInsertAutoIncr(exec SqlExecutor, insertSql string, params ...interface{}) (int64, error) {
-	res, err := exec.Exec(insertSql, params...)
+func standardInsertAutoIncr(ctx context.Context, exec SqlExecutor, insertSql string, params ...interface{}) (int64, error) {
+	res, err := exec.Exec(ctx, insertSql, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -161,8 +163,8 @@ func (d SqliteDialect) BindVar(i int) string {
 	return "?"
 }
 
-func (d SqliteDialect) InsertAutoIncr(exec SqlExecutor, insertSql string, params ...interface{}) (int64, error) {
-	return standardInsertAutoIncr(exec, insertSql, params...)
+func (d SqliteDialect) InsertAutoIncr(ctx context.Context, exec SqlExecutor, insertSql string, params ...interface{}) (int64, error) {
+	return standardInsertAutoIncr(ctx, exec, insertSql, params...)
 }
 
 func (d SqliteDialect) QuoteField(f string) string {
@@ -268,8 +270,8 @@ func (d PostgresDialect) BindVar(i int) string {
 	return fmt.Sprintf("$%d", i+1)
 }
 
-func (d PostgresDialect) InsertAutoIncrToTarget(exec SqlExecutor, insertSql string, target interface{}, params ...interface{}) error {
-	rows, err := exec.query(insertSql, params...)
+func (d PostgresDialect) InsertAutoIncrToTarget(ctx context.Context, exec SqlExecutor, insertSql string, target interface{}, params ...interface{}) error {
+	rows, err := exec.query(ctx, insertSql, params...)
 	if err != nil {
 		return err
 	}
@@ -413,8 +415,8 @@ func (d MySQLDialect) BindVar(i int) string {
 	return "?"
 }
 
-func (d MySQLDialect) InsertAutoIncr(exec SqlExecutor, insertSql string, params ...interface{}) (int64, error) {
-	return standardInsertAutoIncr(exec, insertSql, params...)
+func (d MySQLDialect) InsertAutoIncr(ctx context.Context, exec SqlExecutor, insertSql string, params ...interface{}) (int64, error) {
+	return standardInsertAutoIncr(ctx, exec, insertSql, params...)
 }
 
 func (d MySQLDialect) QuoteField(f string) string {
@@ -530,8 +532,8 @@ func (d SqlServerDialect) BindVar(i int) string {
 	return "?"
 }
 
-func (d SqlServerDialect) InsertAutoIncr(exec SqlExecutor, insertSql string, params ...interface{}) (int64, error) {
-	return standardInsertAutoIncr(exec, insertSql, params...)
+func (d SqlServerDialect) InsertAutoIncr(ctx context.Context, exec SqlExecutor, insertSql string, params ...interface{}) (int64, error) {
+	return standardInsertAutoIncr(ctx, exec, insertSql, params...)
 }
 
 func (d SqlServerDialect) QuoteField(f string) string {
@@ -651,8 +653,8 @@ func (d OracleDialect) BindVar(i int) string {
 	return fmt.Sprintf(":%d", i+1)
 }
 
-func (d OracleDialect) InsertAutoIncr(exec SqlExecutor, insertSql string, params ...interface{}) (int64, error) {
-	rows, err := exec.query(insertSql, params...)
+func (d OracleDialect) InsertAutoIncr(ctx context.Context, exec SqlExecutor, insertSql string, params ...interface{}) (int64, error) {
+	rows, err := exec.query(ctx, insertSql, params...)
 	if err != nil {
 		return 0, err
 	}
