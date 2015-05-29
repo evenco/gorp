@@ -1610,7 +1610,11 @@ func hookedselect(ctx context.Context, m *DbMap, exec SqlExecutor, i interface{}
 	} else {
 		resultsValue := reflect.Indirect(reflect.ValueOf(i))
 		for i := 0; i < resultsValue.Len(); i++ {
-			if v, ok := resultsValue.Index(i).Interface().(HasPostGet); ok {
+			rv := resultsValue.Index(i)
+			if rv.CanAddr() {
+				rv = rv.Addr()
+			}
+			if v, ok := rv.Interface().(HasPostGet); ok {
 				err := v.PostGet(ctx, exec)
 				if err != nil {
 					return nil, err
