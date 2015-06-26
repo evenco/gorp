@@ -1352,7 +1352,17 @@ func (t *Transaction) Rollback(ctx context.Context) error {
 			now := time.Now()
 			defer t.dbmap.trace(ctx, now, "rollback;")
 		}
-		return t.tx.Rollback()
+		err := t.tx.Rollback()
+		if err != nil && t.dbmap.logger != nil {
+			t.dbmap.logger.Error(ctx, "Failed to rollback transaction", map[string]interface{}{
+				"error": err,
+			})
+		}
+		return err
+	}
+
+	if t.dbmap.logger != nil {
+		t.dbmap.logger.Error(ctx, "Attempted to rollback closed transaction", nil)
 	}
 
 	return sql.ErrTxDone
