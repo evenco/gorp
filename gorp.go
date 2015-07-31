@@ -1354,15 +1354,13 @@ func (t *Transaction) Rollback(ctx context.Context) error {
 		}
 		err := t.tx.Rollback()
 		if err != nil && t.dbmap.logger != nil {
-			t.dbmap.logger.Error(ctx, "Failed to rollback transaction", map[string]interface{}{
-				"error": err,
-			})
+			t.dbmap.logger.Error(ctx, "Failed to rollback transaction", err, nil)
 		}
 		return err
 	}
 
 	if t.dbmap.logger != nil {
-		t.dbmap.logger.Error(ctx, "Attempted to rollback closed transaction", nil)
+		t.dbmap.logger.Error(ctx, "Attempted to rollback closed transaction", nil, nil)
 	}
 
 	return sql.ErrTxDone
