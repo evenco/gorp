@@ -1671,7 +1671,7 @@ func rawselect(ctx context.Context, m *DbMap, exec SqlExecutor, i interface{}, q
 	// Run the query
 	rows, err := exec.query(ctx, query, args...)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err)
 	}
 	defer rows.Close()
 
@@ -1993,6 +1993,8 @@ func get(ctx context.Context, m *DbMap, exec SqlExecutor, i interface{},
 	if err != nil {
 		if err == sql.ErrNoRows {
 			err = nil
+		} else {
+			err = errors.Wrap(err)
 		}
 		return nil, err
 	}
@@ -2037,7 +2039,7 @@ func delete(ctx context.Context, m *DbMap, exec SqlExecutor, list ...interface{}
 
 		res, err := exec.Exec(ctx, bi.query, bi.args...)
 		if err != nil {
-			return -1, err
+			return -1, errors.Wrap(err)
 		}
 		rows, err := res.RowsAffected()
 		if err != nil {
@@ -2085,7 +2087,7 @@ func update(ctx context.Context, m *DbMap, exec SqlExecutor, list ...interface{}
 
 		res, err := exec.Exec(ctx, bi.query, bi.args...)
 		if err != nil {
-			return -1, err
+			return -1, errors.Wrap(err)
 		}
 
 		rows, err := res.RowsAffected()
@@ -2161,7 +2163,7 @@ func insert(ctx context.Context, m *DbMap, exec SqlExecutor, list ...interface{}
 		} else {
 			_, err := exec.Exec(ctx, bi.query, bi.args...)
 			if err != nil {
-				return err
+				return errors.Wrap(err)
 			}
 		}
 
