@@ -25,6 +25,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/evenco/go-errors"
+	"github.com/evenco/go-logger"
 	"github.com/evenco/go-loggerface"
 )
 
@@ -1528,14 +1529,10 @@ func SelectOne(ctx context.Context, m *DbMap, e SqlExecutor, holder interface{},
 	}
 
 	if t.Kind() == reflect.Struct {
-		var nonFatalErr error
 
 		list, err := hookedselect(ctx, m, e, holder, query, args...)
 		if err != nil {
-			if !NonFatalError(err) {
-				return err
-			}
-			nonFatalErr = err
+			return err
 		}
 
 		dest := reflect.ValueOf(holder)
@@ -1562,7 +1559,7 @@ func SelectOne(ctx context.Context, m *DbMap, e SqlExecutor, holder interface{},
 			return sql.ErrNoRows
 		}
 
-		return nonFatalErr
+		return nil
 	}
 
 	return selectVal(ctx, e, holder, query, args...)
@@ -1595,14 +1592,9 @@ func selectVal(ctx context.Context, e SqlExecutor, holder interface{}, query str
 func hookedselect(ctx context.Context, m *DbMap, exec SqlExecutor, i interface{}, query string,
 	args ...interface{}) ([]interface{}, error) {
 
-	var nonFatalErr error
-
 	list, err := rawselect(ctx, m, exec, i, query, args...)
 	if err != nil {
-		if !NonFatalError(err) {
-			return nil, err
-		}
-		nonFatalErr = err
+		return nil, err
 	}
 
 	// Determine where the results are: written to i, or returned in list
@@ -1630,7 +1622,7 @@ func hookedselect(ctx context.Context, m *DbMap, exec SqlExecutor, i interface{}
 			}
 		}
 	}
-	return list, nonFatalErr
+	return list, nil
 }
 
 func rawselect(ctx context.Context, m *DbMap, exec SqlExecutor, i interface{}, query string,
@@ -1640,8 +1632,6 @@ func rawselect(ctx context.Context, m *DbMap, exec SqlExecutor, i interface{}, q
 		intoStruct      = true  // Selecting into a struct?
 		pointerElements = true  // Are the slice elements pointers (vs values)?
 	)
-
-	var nonFatalErr error
 
 	// get type for i, verifying it's a supported destination
 	t, err := toType(i)
@@ -1687,11 +1677,8 @@ func rawselect(ctx context.Context, m *DbMap, exec SqlExecutor, i interface{}, q
 
 	var colToFieldIndex [][]int
 	if intoStruct {
-		if colToFieldIndex, err = columnToFieldIndex(m, t, cols); err != nil {
-			if !NonFatalError(err) {
-				return nil, err
-			}
-			nonFatalErr = err
+		if colToFieldIndex, err = columnToFieldIndex(ctx, m, t, cols); err != nil {
+			return nil, err
 		}
 	}
 
@@ -1767,7 +1754,7 @@ func rawselect(ctx context.Context, m *DbMap, exec SqlExecutor, i interface{}, q
 		sliceValue.Set(reflect.MakeSlice(sliceValue.Type(), 0, 0))
 	}
 
-	return list, nonFatalErr
+	return list, nil
 }
 
 // Calls the Exec function on the executor, but attempts to expand any eligible named
@@ -1848,7 +1835,7 @@ func expandNamedQuery(m *DbMap, query string, keyGetter func(key string) reflect
 	}), args
 }
 
-func columnToFieldIndex(m *DbMap, t reflect.Type, cols []string) ([][]int, error) {
+func columnToFieldIndex(ctx context.Context, m *DbMap, t reflect.Type, cols []string) ([][]int, error) {
 	colToFieldIndex := make([][]int, len(cols))
 
 	// check if type t is a mapped table - if so we'll
@@ -1889,8 +1876,8 @@ func columnToFieldIndex(m *DbMap, t reflect.Type, cols []string) ([][]int, error
 			missingColNames = append(missingColNames, colName)
 		}
 	}
-	if len(missingColNames) > 0 {
-		return colToFieldIndex, errors.Instance(ErrorMismatchedSchema).Attach(errors.Fields{
+	if len(missingColNames) > 0 && m.logger != nil {
+		m.logger.Warn(ctx, "The database returned columns that don't exist in the model type", nil, log.Fields{
 			"model":          t.Name(),
 			"missingColumns": missingColNames,
 		})

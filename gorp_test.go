@@ -1593,11 +1593,7 @@ func TestSelectTooManyCols(t *testing.T) {
 	var p3 FNameOnly
 	err := dbmap.SelectOne(context.Background(), &p3, "select * from person_test where Id=:Id", params)
 	if err != nil {
-		if !NonFatalError(err) {
-			t.Error(err)
-		}
-	} else {
-		t.Errorf("Non-fatal error expected")
+		t.Error(err)
 	}
 
 	if p1.FName != p3.FName {
@@ -1607,11 +1603,7 @@ func TestSelectTooManyCols(t *testing.T) {
 	var pSlice []FNameOnly
 	_, err = dbmap.Select(context.Background(), &pSlice, "select * from person_test order by fname asc")
 	if err != nil {
-		if !NonFatalError(err) {
-			t.Error(err)
-		}
-	} else {
-		t.Errorf("Non-fatal error expected")
+		t.Error(err)
 	}
 
 	if p1.FName != pSlice[0].FName {
