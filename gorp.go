@@ -653,6 +653,7 @@ type SqlExecutor interface {
 	SelectStr(ctx context.Context, query string, args ...interface{}) (string, error)
 	SelectNullStr(ctx context.Context, query string, args ...interface{}) (sql.NullString, error)
 	SelectOne(ctx context.Context, holder interface{}, query string, args ...interface{}) error
+	OnCommit(ctx context.Context, f func())
 	query(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
 	queryRow(ctx context.Context, query string, args ...interface{}) *sql.Row
 }
@@ -1113,6 +1114,11 @@ func (m *DbMap) SelectOne(ctx context.Context, holder interface{}, query string,
 	return SelectOne(ctx, m, m, holder, query, args...)
 }
 
+// OnCommit executes immediately when not within a transaction
+func (m *DbMap) OnCommit(ctx context.Context, f func()) {
+	f()
+}
+
 // Begin starts a gorp Transaction
 func (m *DbMap) Begin(ctx context.Context) (*Transaction, error) {
 	if m.logger != nil {
@@ -1321,6 +1327,11 @@ func (t *Transaction) SelectNullStr(ctx context.Context, query string, args ...i
 // SelectOne is a convenience wrapper around the gorp.SelectOne function.
 func (t *Transaction) SelectOne(ctx context.Context, holder interface{}, query string, args ...interface{}) error {
 	return SelectOne(ctx, t.dbmap, t, holder, query, args...)
+}
+
+// OnCommit executes a function after the transaction has completed.
+func (t *Transaction) OnCommit(ctx context.Context, f func()) {
+	t.postCommitCallbacks = append(t.postCommitCallbacks, f)
 }
 
 // Commit commits the underlying database transaction.
