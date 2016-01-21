@@ -1348,7 +1348,7 @@ func (t *Transaction) Commit(ctx context.Context) error {
 		}
 
 		for _, cb := range t.postCommitCallbacks {
-			cb()
+			defer cb()
 		}
 		return nil
 	}
