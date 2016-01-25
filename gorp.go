@@ -1338,17 +1338,16 @@ func (t *Transaction) OnCommit(ctx context.Context, f func()) {
 func (t *Transaction) Commit(ctx context.Context) error {
 	if !t.closed {
 		t.closed = true
-		if t.dbmap.logger != nil {
-			now := time.Now()
-			defer t.dbmap.trace(ctx, now, "commit;")
-		}
+		now := time.Now()
 		err := t.tx.Commit()
+		if t.dbmap.logger != nil {
+			t.dbmap.trace(ctx, now, "commit;")
+		}
 		if err != nil {
 			return err
 		}
-
 		for _, cb := range t.postCommitCallbacks {
-			defer cb()
+			cb()
 		}
 		return nil
 	}
