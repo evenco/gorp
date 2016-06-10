@@ -29,6 +29,10 @@ import (
 	"github.com/evenco/go-loggerface"
 )
 
+const (
+	maxLogLength = 1024
+)
+
 // Oracle String (empty string is null)
 type OracleString struct {
 	sql.NullString
@@ -1218,6 +1222,7 @@ func (m *DbMap) trace(ctx context.Context, started time.Time, query string, args
 
 func formattedArgs(args ...interface{}) map[string]string {
 	var strArgs = map[string]string{}
+	bytes := 0
 	for i, a := range args {
 		var v interface{} = a
 		if x, ok := v.(driver.Valuer); ok {
@@ -1226,7 +1231,16 @@ func formattedArgs(args ...interface{}) map[string]string {
 				v = y
 			}
 		}
-		strArgs[fmt.Sprintf("%02d", i+1)] = fmt.Sprintf("%v", v)
+
+		var strValue string
+		if bytes < maxLogLength {
+			strValue = fmt.Sprintf("%v", v)
+			bytes += len(strValue)
+		} else {
+			strValue = "(omitted)"
+		}
+
+		strArgs[fmt.Sprintf("%02d", i+1)] = strValue
 	}
 	return strArgs
 }
